@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import { cn } from "@/lib/utils";
+import { getFileUrl } from "@/lib/files";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -15,13 +16,15 @@ export const WorkspaceAvatar = ({
   name,
   className
 }: WorkspaceAvatarProps) => {
-  if (image) {
+  const src = getFileUrl(image);
+
+  if (src) {
     return (
       <div className={cn(
         "size-10 relative rounded-md overflow-hidden",
         className,
       )}>
-        <Image src={image} alt={name} fill className="object-cover" />
+        <Image src={src} alt={name} fill unoptimized className="object-cover" />
       </div>
     );
   }

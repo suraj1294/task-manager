@@ -10,7 +10,7 @@ export const CreateTaskModal = () => {
   const { isOpen, setIsOpen, close } = useCreateTaskModal();
 
   return (
-    <ResponsiveModal open={isOpen} onOpenChange={setIsOpen}>
+    <ResponsiveModal open={isOpen} onOpenChange={setIsOpen} title="Create a new task">
       <CreateTaskFormWrapper onCancel={close} />
     </ResponsiveModal>
   );

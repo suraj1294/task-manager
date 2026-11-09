@@ -17,4 +17,6 @@ export type Task = Models.Document & {
   position: number;
   dueDate: string;
   description?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 };

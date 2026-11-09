@@ -42,10 +42,8 @@ export const DatePicker = ({ value, onChange, className, placeholder = "Select d
           mode="single"
           selected={value}
           onSelect={(date) => onChange(date as Date)}
-          initialFocus
         />
       </PopoverContent>
     </Popover>
   );
 };
-

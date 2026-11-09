@@ -5,6 +5,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { client } from "@/lib/rpc";
 
+import { HttpError } from "./http-error";
+
 type ResponseType = InferResponseType<typeof client.api.auth.register["$post"]>;
 type RequestType = InferRequestType<typeof client.api.auth.register["$post"]>;
 
@@ -21,7 +23,7 @@ export const useRegister = () => {
       const response = await client.api.auth.register["$post"]({ json });
 
       if (!response.ok) {
-        throw new Error("Failed to register");
+        throw new HttpError(response.status);
       }
 
       return await response.json();
@@ -31,7 +33,12 @@ export const useRegister = () => {
       router.refresh();
       queryClient.invalidateQueries({ queryKey: ["current"] });
     },
-    onError: () => {
+    onError: (error) => {
+      if (error instanceof HttpError && error.status === 409) {
+        toast.error("Email already in use");
+        return;
+      }
+
       toast.error("Failed to register");
     }
   });

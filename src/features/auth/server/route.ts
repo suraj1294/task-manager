@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { ID } from "node-appwrite";
+import { AppwriteException, ID } from "node-appwrite";
 import { deleteCookie, setCookie } from "hono/cookie";
 import { zValidator } from "@hono/zod-validator";
 
@@ -26,20 +26,32 @@ const app = new Hono()
       const { email, password } = c.req.valid("json");
 
       const { account } = await createAdminClient();
-      const session = await account.createEmailPasswordSession(
-        email,
-        password,
-      );
 
-      setCookie(c, AUTH_COOKIE, session.secret, {
-        path: "/",
-        httpOnly: true,
-        secure: true,
-        sameSite: "strict",
-        maxAge: 60 * 60 * 24 * 30,
-      });
+      try {
+        const session = await account.createEmailPasswordSession(
+          email,
+          password,
+        );
 
-      return c.json({ success: true });
+        setCookie(c, AUTH_COOKIE, session.secret, {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          sameSite: "strict",
+          maxAge: 60 * 60 * 24 * 30,
+        });
+
+        return c.json({ success: true });
+      } catch (error) {
+        if (
+          error instanceof AppwriteException &&
+          (error.type === "user_invalid_credentials" || error.code === 401)
+        ) {
+          return c.json({ error: "Invalid credentials" }, 401);
+        }
+
+        throw error;
+      }
     }
   )
   .post(
@@ -49,12 +61,24 @@ const app = new Hono()
       const { name, email, password } = c.req.valid("json");
 
       const { account } = await createAdminClient();
-      await account.create(
-        ID.unique(),
-        email,
-        password,
-        name,
-      );
+
+      try {
+        await account.create(
+          ID.unique(),
+          email,
+          password,
+          name,
+        );
+      } catch (error) {
+        if (
+          error instanceof AppwriteException &&
+          (error.type === "user_already_exists" || error.code === 409)
+        ) {
+          return c.json({ error: "Email already in use" }, 409);
+        }
+
+        throw error;
+      }
 
       const session = await account.createEmailPasswordSession(
         email,

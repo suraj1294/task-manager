@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeftIcon, CopyIcon, ImageIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { getFileUrl } from "@/lib/files";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -97,7 +98,7 @@ export const EditWorkspaceForm = ({ onCancel, initialValues }: EditWorkspaceForm
   const onSubmit = (values: z.infer<typeof updateWorkspaceSchema>) => {
     const finalValues = {
       ...values,
-      image: values.image instanceof File ? values.image : "",
+      image: values.image instanceof File ? values.image : values.image ?? "",
     };
 
     mutate({
@@ -170,11 +171,12 @@ export const EditWorkspaceForm = ({ onCancel, initialValues }: EditWorkspaceForm
                             <Image
                               alt="Logo"
                               fill
+                              unoptimized
                               className="object-cover"
                               src={
                                 field.value instanceof File
                                   ? URL.createObjectURL(field.value)
-                                  : field.value
+                                  : getFileUrl(field.value) ?? ""
                               }
                             />
                           </div>

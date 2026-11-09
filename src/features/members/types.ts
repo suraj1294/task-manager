@@ -9,4 +9,6 @@ export type Member = Models.Document & {
   workspaceId: string;
   userId: string;
   role: MemberRole;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 };

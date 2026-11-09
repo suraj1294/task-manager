@@ -107,6 +107,7 @@ export const CreateWorkspaceForm = ({ onCancel }: CreateWorkspaceFormProps) => {
                           <Image
                             alt="Logo"
                             fill
+                            unoptimized
                             className="object-cover"
                             src={
                               field.value instanceof File

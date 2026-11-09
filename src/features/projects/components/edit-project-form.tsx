@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeftIcon, ImageIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { getFileUrl } from "@/lib/files";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -75,7 +76,7 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
   const onSubmit = (values: z.infer<typeof updateProjectSchema>) => {
     const finalValues = {
       ...values,
-      image: values.image instanceof File ? values.image : "",
+      image: values.image instanceof File ? values.image : values.image ?? "",
     };
 
     mutate({
@@ -140,11 +141,12 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
                             <Image
                               alt="Logo"
                               fill
+                              unoptimized
                               className="object-cover"
                               src={
                                 field.value instanceof File
                                   ? URL.createObjectURL(field.value)
-                                  : field.value
+                                  : getFileUrl(field.value) ?? ""
                               }
                             />
                           </div>

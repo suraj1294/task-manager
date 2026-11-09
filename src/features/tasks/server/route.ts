@@ -272,7 +272,7 @@ const app = new Hono()
           name,
           status,
           projectId,
-          dueDate,
+          dueDate: dueDate?.toISOString(),
           assigneeId,
           description,
         },

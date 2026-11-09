@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -23,6 +23,26 @@ type TasksState = {
   [key in TaskStatus]: Task[];
 };
 
+const buildBoard = (data: Task[]): TasksState => {
+  const board: TasksState = {
+    [TaskStatus.BACKLOG]: [],
+    [TaskStatus.TODO]: [],
+    [TaskStatus.IN_PROGRESS]: [],
+    [TaskStatus.IN_REVIEW]: [],
+    [TaskStatus.DONE]: [],
+  };
+
+  data.forEach((task) => {
+    board[task.status].push(task);
+  });
+
+  (Object.keys(board) as TaskStatus[]).forEach((status) => {
+    board[status].sort((a, b) => a.position - b.position);
+  });
+
+  return board;
+};
+
 interface DataKanbanProps {
   data: Task[];
   onChange: (tasks: { $id: string; status: TaskStatus; position: number }[]) => void;
@@ -32,45 +52,13 @@ export const DataKanban = ({
   data,
   onChange,
 }: DataKanbanProps) => {
-  const [tasks, setTasks] = useState<TasksState>(() => {
-    const initialTasks: TasksState = {
-      [TaskStatus.BACKLOG]: [],
-      [TaskStatus.TODO]: [],
-      [TaskStatus.IN_PROGRESS]: [],
-      [TaskStatus.IN_REVIEW]: [],
-      [TaskStatus.DONE]: [],
-    };
+  const [tasks, setTasks] = useState<TasksState>(() => buildBoard(data));
+  const [prevData, setPrevData] = useState(data);
 
-    data.forEach((task) => {
-      initialTasks[task.status].push(task);
-    });
-
-    Object.keys(initialTasks).forEach((status) => {
-      initialTasks[status as TaskStatus].sort((a, b) => a.position - b.position);
-    });
-
-    return initialTasks;
-  });
-
-  useEffect(() => {
-    const newTasks: TasksState = {
-      [TaskStatus.BACKLOG]: [],
-      [TaskStatus.TODO]: [],
-      [TaskStatus.IN_PROGRESS]: [],
-      [TaskStatus.IN_REVIEW]: [],
-      [TaskStatus.DONE]: [],
-    };
-    
-    data.forEach((task) => {
-      newTasks[task.status].push(task);
-    });
-
-    Object.keys(newTasks).forEach((status) => {
-      newTasks[status as TaskStatus].sort((a, b) => a.position - b.position);
-    });
-
-    setTasks(newTasks);
-  }, [data]);
+  if (data !== prevData) {
+    setPrevData(data);
+    setTasks(buildBoard(data));
+  }
 
   const onDragEnd = useCallback((result: DropResult) => {
     if (!result.destination) return;

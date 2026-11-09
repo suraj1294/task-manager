@@ -9,6 +9,7 @@ import { getMember } from "@/features/members/utils";
 
 import { DATABASE_ID, IMAGES_BUCKET_ID, PROJECTS_ID, TASKS_ID } from "@/config";
 import { sessionMiddleware } from "@/lib/session-middleware";
+import { deleteImage } from "@/lib/storage";
 
 import { createProjectSchema, updateProjectSchema } from "../schemas";
 
@@ -36,7 +37,7 @@ const app = new Hono()
         return c.json({ error: "Unathorized" }, 401);
       }
 
-      let uploadedImageUrl: string | undefined;
+      let uploadedImageId: string | undefined;
 
       if (image instanceof File) {
         const file = await storage.createFile(
@@ -45,12 +46,7 @@ const app = new Hono()
           image,
         );
 
-        const arrayBuffer = await storage.getFilePreview(
-          IMAGES_BUCKET_ID,
-          file.$id,
-        );
-
-        uploadedImageUrl = `data:image/png;base64,${Buffer.from(arrayBuffer).toString("base64")}`;
+        uploadedImageId = file.$id;
       }
 
       const project = await databases.createDocument(
@@ -59,7 +55,7 @@ const app = new Hono()
         ID.unique(),
         {
           name,
-          imageUrl: uploadedImageUrl,
+          imageUrl: uploadedImageId,
           workspaceId
         },
       );
@@ -158,7 +154,8 @@ const app = new Hono()
         return c.json({ error: "Unauthorized" }, 401);
       }
 
-      let uploadedImageUrl: string | undefined;
+      let uploadedImageId: string | undefined;
+      let imageRemoved = false;
 
       if (image instanceof File) {
         const file = await storage.createFile(
@@ -167,15 +164,12 @@ const app = new Hono()
           image,
         );
 
-        const arrayBuffer = await storage.getFilePreview(
-          IMAGES_BUCKET_ID,
-          file.$id,
-        );
-
-        uploadedImageUrl = `data:image/png;base64,${Buffer.from(arrayBuffer).toString("base64")}`;
-      } else {
-        uploadedImageUrl = image;
-      } 
+        uploadedImageId = file.$id;
+      } else if (image) {
+        uploadedImageId = image;
+      } else if (image !== undefined) {
+        imageRemoved = true;
+      }
 
       const project = await databases.updateDocument(
         DATABASE_ID,
@@ -183,9 +177,13 @@ const app = new Hono()
         projectId,
         {
           name,
-          imageUrl: uploadedImageUrl
+          imageUrl: imageRemoved ? "" : uploadedImageId
         }
       );
+
+      if (image instanceof File || imageRemoved) {
+        await deleteImage(storage, existingProject.imageUrl);
+      }
 
       return c.json({ data: project });
     }
@@ -195,6 +193,7 @@ const app = new Hono()
     sessionMiddleware,
     async (c) => {
       const databases = c.get("databases");
+      const storage = c.get("storage");
       const user = c.get("user");
 
       const { projectId } = c.req.param();
@@ -222,6 +221,8 @@ const app = new Hono()
         PROJECTS_ID,
         projectId,
       );
+
+      await deleteImage(storage, existingProject.imageUrl);
 
       return c.json({ data: { $id: existingProject.$id } });
     }

@@ -10,7 +10,7 @@ export const EditTaskModal = () => {
   const { taskId, close } = useEditTaskModal();
 
   return (
-    <ResponsiveModal open={!!taskId} onOpenChange={close}>
+    <ResponsiveModal open={!!taskId} onOpenChange={close} title="Edit a task">
       {taskId && (
         <EditTaskFormWrapper id={taskId} onCancel={close} />
       )}

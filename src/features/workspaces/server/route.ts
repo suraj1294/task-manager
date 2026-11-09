@@ -10,6 +10,7 @@ import { getMember } from "@/features/members/utils";
 
 import { generateInviteCode } from "@/lib/utils";
 import { sessionMiddleware } from "@/lib/session-middleware";
+import { deleteImage } from "@/lib/storage";
 import { DATABASE_ID, IMAGES_BUCKET_ID, MEMBERS_ID, TASKS_ID, WORKSPACES_ID } from "@/config";
 
 import { Workspace } from "../types";
@@ -103,7 +104,7 @@ const app = new Hono()
 
       const { name, image } = c.req.valid("form");
 
-      let uploadedImageUrl: string | undefined;
+      let uploadedImageId: string | undefined;
 
       if (image instanceof File) {
         const file = await storage.createFile(
@@ -112,12 +113,7 @@ const app = new Hono()
           image,
         );
 
-        const arrayBuffer = await storage.getFilePreview(
-          IMAGES_BUCKET_ID,
-          file.$id,
-        );
-
-        uploadedImageUrl = `data:image/png;base64,${Buffer.from(arrayBuffer).toString("base64")}`;
+        uploadedImageId = file.$id;
       }
 
       const workspace = await databases.createDocument(
@@ -127,7 +123,7 @@ const app = new Hono()
         {
           name,
           userId: user.$id,
-          imageUrl: uploadedImageUrl,
+          imageUrl: uploadedImageId,
           inviteCode: generateInviteCode(6),
         },
       );
@@ -158,6 +154,12 @@ const app = new Hono()
       const { workspaceId } = c.req.param();
       const { name, image } = c.req.valid("form");
 
+      const existingWorkspace = await databases.getDocument<Workspace>(
+        DATABASE_ID,
+        WORKSPACES_ID,
+        workspaceId,
+      );
+
       const member = await getMember({
         databases,
         workspaceId,
@@ -168,7 +170,8 @@ const app = new Hono()
         return c.json({ error: "Unauthorized" }, 401);
       }
 
-      let uploadedImageUrl: string | undefined;
+      let uploadedImageId: string | undefined;
+      let imageRemoved = false;
 
       if (image instanceof File) {
         const file = await storage.createFile(
@@ -177,15 +180,12 @@ const app = new Hono()
           image,
         );
 
-        const arrayBuffer = await storage.getFilePreview(
-          IMAGES_BUCKET_ID,
-          file.$id,
-        );
-
-        uploadedImageUrl = `data:image/png;base64,${Buffer.from(arrayBuffer).toString("base64")}`;
-      } else {
-        uploadedImageUrl = image;
-      } 
+        uploadedImageId = file.$id;
+      } else if (image) {
+        uploadedImageId = image;
+      } else if (image !== undefined) {
+        imageRemoved = true;
+      }
 
       const workspace = await databases.updateDocument(
         DATABASE_ID,
@@ -193,9 +193,13 @@ const app = new Hono()
         workspaceId,
         {
           name,
-          imageUrl: uploadedImageUrl
+          imageUrl: imageRemoved ? "" : uploadedImageId
         }
       );
+
+      if (image instanceof File || imageRemoved) {
+        await deleteImage(storage, existingWorkspace.imageUrl);
+      }
 
       return c.json({ data: workspace });
     }
@@ -205,6 +209,7 @@ const app = new Hono()
     sessionMiddleware,
     async (c) => {
       const databases = c.get("databases");
+      const storage = c.get("storage");
       const user = c.get("user");
 
       const { workspaceId } = c.req.param();
@@ -219,6 +224,12 @@ const app = new Hono()
         return c.json({ error: "Unauthorized" }, 401);
       }
 
+      const workspace = await databases.getDocument<Workspace>(
+        DATABASE_ID,
+        WORKSPACES_ID,
+        workspaceId,
+      );
+
       // TODO: Delete members, projects, and tasks
 
       await databases.deleteDocument(
@@ -226,6 +237,8 @@ const app = new Hono()
         WORKSPACES_ID,
         workspaceId,
       );
+
+      await deleteImage(storage, workspace.imageUrl);
 
       return c.json({ data: { $id: workspaceId } });
     }

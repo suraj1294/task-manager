@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type JSX } from "react";
 
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { ResponsiveModal } from "@/components/responsive-modal";
@@ -38,7 +38,7 @@ export const useConfirm = (
   };
 
   const ConfirmationDialog = () => (
-    <ResponsiveModal open={promise !== null} onOpenChange={handleClose}>
+    <ResponsiveModal open={promise !== null} onOpenChange={handleClose} title={title}>
       <Card className="w-full h-full border-none shadow-none">
         <CardContent className="pt-8">
           <CardHeader className="p-0">

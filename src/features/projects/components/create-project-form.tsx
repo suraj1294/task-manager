@@ -111,6 +111,7 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
                           <Image
                             alt="Logo"
                             fill
+                            unoptimized
                             className="object-cover"
                             src={
                               field.value instanceof File
