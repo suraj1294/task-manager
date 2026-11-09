@@ -45,12 +45,13 @@ const app = new Hono()
       } catch (error) {
         if (
           error instanceof AppwriteException &&
-          (error.type === "user_invalid_credentials" || error.code === 401)
+          error.type === "user_invalid_credentials"
         ) {
           return c.json({ error: "Invalid credentials" }, 401);
         }
 
-        throw error;
+        console.error("[auth/login] unexpected error", error);
+        return c.json({ error: "Failed to sign in" }, 500);
       }
     }
   )
@@ -77,7 +78,8 @@ const app = new Hono()
           return c.json({ error: "Email already in use" }, 409);
         }
 
-        throw error;
+        console.error("[auth/register] unexpected error", error);
+        return c.json({ error: "Failed to register" }, 500);
       }
 
       const session = await account.createEmailPasswordSession(

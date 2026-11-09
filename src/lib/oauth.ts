@@ -6,34 +6,43 @@ import { OAuthProvider } from "node-appwrite";
 
 import { createAdminClient } from "@/lib/appwrite";
 
-export async function signUpWithGithub() {
+const getAppUrl = async () => {
+  const url =
+    process.env.NEXT_PUBLIC_APP_URL ?? (await headers()).get("origin");
+
+  return url?.replace(/\/$/, "");
+};
+
+const signInWithProvider = async (provider: OAuthProvider) => {
   const { account } = await createAdminClient();
+  const appUrl = await getAppUrl();
 
-  const origin = (await headers()).get("origin");
+  if (!appUrl) {
+    throw new Error(
+      "Cannot determine the app URL: set NEXT_PUBLIC_APP_URL or send an origin header",
+    );
+  }
 
-  console.log({ origin });
+  let redirectUrl: string;
 
-  const redirectUrl = await account.createOAuth2Token(
-    OAuthProvider.Github,
-    `${origin}/oauth`,
-    `${origin}/sign-up`
-  );
-
-  console.log({ redirectUrl });
+  try {
+    redirectUrl = await account.createOAuth2Token(
+      provider,
+      `${appUrl}/oauth`,
+      `${appUrl}/sign-up`,
+    );
+  } catch (error) {
+    console.error(`[auth/oauth] ${provider} sign-in failed`, error);
+    throw error;
+  }
 
   return redirect(redirectUrl);
+};
+
+export async function signUpWithGithub() {
+  return signInWithProvider(OAuthProvider.Github);
 }
 
 export async function signUpWithGoogle() {
-  const { account } = await createAdminClient();
-
-  const origin = (await headers()).get("origin");
-
-  const redirectUrl = await account.createOAuth2Token(
-    OAuthProvider.Google,
-    `${origin}/oauth`,
-    `${origin}/sign-up`
-  );
-
-  return redirect(redirectUrl);
+  return signInWithProvider(OAuthProvider.Google);
 }
