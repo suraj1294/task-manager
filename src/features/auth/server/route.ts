@@ -37,7 +37,7 @@ const app = new Hono()
           path: "/",
           httpOnly: true,
           secure: true,
-          sameSite: "strict",
+          sameSite: "lax",
           maxAge: 60 * 60 * 24 * 30,
         });
 
@@ -91,7 +91,7 @@ const app = new Hono()
         path: "/",
         httpOnly: true,
         secure: true,
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: 60 * 60 * 24 * 30,
       });
 
